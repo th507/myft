@@ -4,6 +4,12 @@ myft in terminal #fthackday
 View customized news from [ft.com](http://ft.com/) in terminal.
 
 ##Usage
+###request API key from FT
+
+* go to [http://developer.ft.com](http://developer.ft.com)
+* register and request an API key
+* put it into the *config.sample.js* and rename it to *config.js*
+
 
 ###install dependencies
 
