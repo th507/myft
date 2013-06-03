@@ -1,0 +1,186 @@
+#!/usr/bin/env node
+/*vim: set ft=javascript*/
+var paint = require("./lib/blockpaint.js");
+var stripTag = require("./lib/striptag.js");
+var pager = require("./lib/pagination.js");
+
+var color = require("ansi-color").set;
+var commander = require('commander');
+var fs = require('fs');
+
+if (fs.existsSync("./config.js")) {
+    var xAPIKey = require("./config.js");
+    var xAPIHeader = "X-Api-Key: " + xAPIKey;
+    var api = require("./lib/ftapi.js");
+    api.set(xAPIKey, xAPIHeader);
+    
+}
+else {
+    console.log(
+            "You should get an API key from http://developer.ft.com, " +
+            "then filled it into config.js.\n" +
+            "Sample is provided as config.sample.js"
+            );
+    process.exit(0);
+}
+
+
+
+function frontpageView() {
+    commander.version('0.0.2').parse(process.argv);
+
+    var logo = paint.block({column:{start:0, end:"max"}, row:{start:0, end:0}}, "Financial Times", "blue_bg");
+
+    var timestamp = paint.block({column:{start:0, end:"max"}, row:{start:1, end:1}}, (new Date()).toLocaleTimeString(), "blue_bg");
+
+    var rightSectionTitle = "NEWS ABOUT: " + commander.args.join();
+    var leftSectionTitle = "LATEST NEWS IN UK & Europe";
+
+    var arr = [], blocklist = [];
+    
+    
+    blocklist.push(
+        logo, timestamp,
+        paint.block({column:{start:0, end:"third"}, row:{start:2, end:2}}, "LATEST NEWS IN UK", "green_bg+black"),
+        paint.block({column:{start:"third", end:"max"}, row:{start:2, end:2}}, rightSectionTitle, "magenta_bg+white")
+    );
+
+    fetch(blocklist, arr, "http://api.ft.com/site/v1/pages/4c499f12-4e94-11de-8d4c-00144feabdc0", function(blocklist, arr) {
+        //fetch(blocklist, arr, "http://api.ft.com/site/v1/pages/be74042e-4e94-11de-8d4c-00144feabdc0", function(blocklist, arr) {            
+            appendPersonalizedAndRender(blocklist, arr);
+        //});
+    });
+}
+frontpageView.state = "frontpage";
+
+function fetch(blocklist, arr, url, cb) {
+    var height = process.stdout.getWindowSize()[1];
+    api.single(url + "/main-content", function(obj) {
+        var i, item, len = Math.min(9, obj.pageItems.length);
+        for (i = 0; i < len; i++) {
+            item = obj.pageItems[i];
+            arr.push({
+                title: item.title.title,
+                src: item.links[0].href,
+                sub: (item.editorial.subheading || item.leadBody || item.byline)
+            });  
+        }
+        cb.call(null, blocklist, arr);
+        
+    });
+    return;
+}
+
+
+function appendPersonalizedAndRender(blocklist, arr) {
+    arr.map(function(item, index) {
+        var i = index + 2,
+            articleTitle = paint.block({column:{start:0, end:"third"}, row:{start:2*i-1, end:2*i-1}},
+                (" " + (i - 1) + ". ").slice(-4) + item.title
+            , "bold"),
+            articleSub = paint.block({column:{start:0, end:"third"}, row:{start:2*i, end:2*i}},
+                "  " + item.sub);
+        
+        blocklist.push(articleTitle, articleSub);
+    });
+
+    showPersonalized(commander.args, arr.length, function(outputBlocks, outputArray) {
+        [].push.apply(blocklist, outputBlocks);
+        [].push.apply(arr, outputArray);
+        process.stdout.write(paint.page(blocklist));
+        pager.frontpageViewController(storyView, arr, frontpageView);
+    });
+}
+
+function showPersonalized(args, startFrom, cb) {
+    if (!args.length) {
+        cb.call(null, []);
+    }
+    api.search({queryString:args.join(" ")}, null, function(data) {
+        try {
+            var list = data.results[0].results;
+            var articleList = [];
+            list.forEach(function(item) {
+                if (item.aspectSet === "article") {
+                    if (articleList.length > 3) {
+                        return;
+                    }
+                    articleList.push(item.apiUrl || "");
+                }
+            });
+
+            api.multiple(articleList, function(results_arr) { 
+                // because inside map any item could fail and create a whole in number sequence
+                var index = 0;
+                var rightList = [];
+                results_arr.map(function(sample) {
+                    if (!sample.item) {
+                        return;
+                    }
+                    try {
+                        var i = index + 2,
+                            tmp = paint.block({column:{start:"third", end:"max"}, row:{start:i+1, end:i+1}},
+                                "" + (index + startFrom + 1) + " " + sample.item.title.title
+                            , "magenta");
+                        rightList.push(tmp);
+                        index = index + 1;
+                    }
+                    catch (e) {}
+                });
+
+                if (cb) {
+                    var tmp_arr = results_arr.map(function(sample) {
+                        var item, src;
+                        if (!(item = sample.item)) {
+                            return;
+                        }
+    
+                        try {
+                            src = item.links[0].href
+                        }
+                        catch (e) {
+                            src = item.apiUrl;
+                        }
+                        return {
+                            title: item.title.title,
+                            src: src,
+                            sub: (item.editorial.subheading || sample.leadBody || sample.byline)
+                        };
+                    });
+
+                    cb.call(null, rightList, tmp_arr);
+                }
+            });
+
+          
+        }
+        catch(e) {
+            cb.call(null, [paint.block({column:{start:51, end:60},row:{start:3, end:3}},"Nothing found.")], []);
+        }
+    });
+}
+
+// paint article page
+// this is somewhat different from frontpage 
+// which we could separate the entire screen into blocks
+// the FT logo and the article title are painted as blocks
+// but the article content is painted line by line
+function storyView(index, arr) {
+    var logo = paint.block({column:{start:0, end:"max"}, row:{start:0, end:0}}, "Financial Times", "blue_bg");
+    
+    api.single(arr[index].src, function(response) {
+        var bodyContent, textContent, title, paginatedPages, pages, pageIndex;
+        bodyContent = response.item.body.body;
+        title       = paint.block({column:{start:0, end:"max"}, row:{start:1, end:1}}, response.item.title.title, "magenta_bg");
+        textContent = stripTag(bodyContent);
+
+        paginatedPages = pager.paginate(textContent);
+        pages = paginatedPages.length;
+        pageIndex = 0;
+
+        pager.display(paginatedPages, pageIndex, title, frontpageView);
+    });
+}
+storyView.state = "article";
+
+frontpageView();

@@ -1,0 +1,43 @@
+{
+  "name": "myft",
+  "version": "0.0.2",
+  "description": "reading FT articles with greatest unease",
+  "keywords": [
+    "financial",
+    "times",
+    "fthackday",
+    "myft"
+  ],
+  "author": {
+    "name": "Jingwei Liu",
+    "email": "liujingwei@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/th507/myft.git"
+  },
+  "dependencies": {
+    "ansi-color": "~0.2.1",
+    "curling": "~0.3.0",
+    "commander": "~1.1.1",
+    "jsdom": "~0.6.5",
+    "prompt": "~0.2.9"
+  },
+  "main": "index",
+  "engines": {
+    "node": ">= 0.10.6"
+  },
+  "readme": "see README",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/th507/myft/issues"
+  },
+  "_id": "myft@0.0.2",
+  "dist": {
+    "shasum": "50d1651868ae60eccff0a2d9f34595376bc6b041"
+  },
+  "_from": "myft@"
+}
+
+        
+        
