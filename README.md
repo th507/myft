@@ -22,21 +22,26 @@ View customized news from [ft.com](http://ft.com/) in terminal.
 ##Screenshot
 
 
-<img src="http://f.cl.ly/items/2V281T0A3W1C260L353R/myft.png" style="width:50%;"/>
+<img src="http://f.cl.ly/items/2V281T0A3W1C260L353R/myft.png" style="width:325px"/>
 
 ##Navigation
 
 
 **article index** view content
 
-**n** next page**p** previous page**f** return to front page
-**q** quit this program
+**n** next page
+
+**p** previous page
+
+**f** return to front page
+
+**q** quit this program
 
 ##Responsive Design … sort of
 
 **r** refit screen
 
-<img src="http://f.cl.ly/items/0o3J1S1T3z2y1t2p3U08/myft-wide.png" style="width:75%;"/>
+<img src="http://f.cl.ly/items/0o3J1S1T3z2y1t2p3U08/myft-wide.png" style="width:485px;"/>
 
 
 ##About this project
